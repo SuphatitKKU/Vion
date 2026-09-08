@@ -85,6 +85,7 @@ jobs:
             -DUSE_LTO=NEVER \
             -DBoost_NO_BOOST_CMAKE=ON \
             -DBoost_NO_SYSTEM_PATHS=ON \
+            -DBoost_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/Boost-1.89.0" \
             -DVITA3K_FORCE_CUSTOM_BOOST=ON
 
       - name: Build Vion
