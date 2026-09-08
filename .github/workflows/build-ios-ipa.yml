@@ -111,6 +111,7 @@ jobs:
             --target-list="$(IFS=,; echo "${TARGETS[*]}")"
 
           test -s config-host.mak
+          sed -i.bak '/^HAVE_PTHREAD_JIT_PROTECT=y$/d' config-host.mak
           sh "${GITHUB_WORKSPACE}/external/unicorn/qemu/scripts/create_config" \
             < config-host.mak > config-host.h
           for target in "${TARGETS[@]}"; do
