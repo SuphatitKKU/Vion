@@ -1,0 +1,127 @@
+name: Build Vion iOS IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUILD_CONFIG: Release
+  IOS_DEPLOYMENT_TARGET: "16.0"
+
+jobs:
+  build-ios:
+    name: Build unsigned IPA (iOS arm64)
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: native-ios-port
+          fetch-depth: 0
+          submodules: recursive
+
+      # The native-ios-port commit lists these submodules in .gitmodules,
+      # but does not contain their gitlinks yet.
+      - name: Restore missing iOS dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/jarrodnorwell/ffmpeg-core.git external/ffmpeg-ios
+          git clone --depth 1 https://github.com/jarrodnorwell/unicorn.git external/unicorn
+
+      - name: Select Xcode and install build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          brew install ninja
+
+      - name: Build Boost for iOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          BOOST_STAGE="$GITHUB_WORKSPACE/build/ios/external/boost"
+          BOOST_BUILD="$RUNNER_TEMP/boost-build"
+
+          cd external/boost
+          ./bootstrap.sh --with-libraries=filesystem
+          ./b2 -j"$(sysctl -n hw.ncpu)" \
+            --with-filesystem \
+            variant=release \
+            link=static \
+            runtime-link=static \
+            threading=multi \
+            target-os=iphone \
+            architecture=arm \
+            address-model=64 \
+            cxxflags="-arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_DEPLOYMENT_TARGET}" \
+            linkflags="-arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_DEPLOYMENT_TARGET}" \
+            --build-dir="${BOOST_BUILD}" \
+            --stagedir="${BOOST_STAGE}" \
+            stage
+
+      - name: Configure CMake iOS project
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build/ios -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET="${IOS_DEPLOYMENT_TARGET}" \
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="" \
+            -DTEAM= \
+            -DUSE_LTO=NEVER \
+            -DVITA3K_FORCE_CUSTOM_BOOST=ON
+
+      - name: Build Vion
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build build/ios \
+            --config "${BUILD_CONFIG}" \
+            --target Vion \
+            --parallel "$(sysctl -n hw.ncpu)" \
+            -- \
+            -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=
+
+      - name: Package IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find build/ios -type d -path "*/${BUILD_CONFIG}-iphoneos/Vion.app" -print -quit)"
+          if [[ -z "${APP_PATH}" ]]; then
+            echo "Vion.app was not produced" >&2
+            find build/ios -type d -name '*.app' -print >&2
+            exit 1
+          fi
+
+          rm -rf dist
+          mkdir -p dist/Payload
+          ditto "${APP_PATH}" dist/Payload/Vion.app
+          ditto -c -k --sequesterRsrc --keepParent dist/Payload dist/Vion-unsigned.ipa
+
+          test -f dist/Vion-unsigned.ipa
+          unzip -l dist/Vion-unsigned.ipa | grep -q '^.*Payload/Vion.app/'
+          plutil -p dist/Payload/Vion.app/Info.plist
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vion-unsigned-ipa
+          path: dist/Vion-unsigned.ipa
+          if-no-files-found: error
+
