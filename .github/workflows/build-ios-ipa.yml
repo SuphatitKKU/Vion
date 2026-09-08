@@ -91,6 +91,35 @@ jobs:
             -Dboost_headers_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/boost_headers-1.89.0" \
             -DVITA3K_FORCE_CUSTOM_BOOST=ON
 
+      - name: Regenerate Unicorn target headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+          CLANG="$(xcrun --sdk iphoneos -f clang)"
+          TARGETS=(
+            x86_64-softmmu arm-softmmu aarch64-softmmu m68k-softmmu
+            mips-softmmu mipsel-softmmu mips64-softmmu mips64el-softmmu
+            sparc-softmmu sparc64-softmmu ppc-softmmu ppc64-softmmu
+            riscv32-softmmu riscv64-softmmu s390x-softmmu tricore-softmmu
+          )
+
+          cd build/ios
+          sh "${GITHUB_WORKSPACE}/external/unicorn/qemu/configure" \
+            --cc="${CLANG}" \
+            --extra-cflags="-fPIC -arch arm64 -isysroot ${SDKROOT} -miphoneos-version-min=${IOS_DEPLOYMENT_TARGET}" \
+            --target-list="$(IFS=,; echo "${TARGETS[*]}")"
+
+          test -s config-host.mak
+          sh "${GITHUB_WORKSPACE}/external/unicorn/qemu/scripts/create_config" \
+            < config-host.mak > config-host.h
+          for target in "${TARGETS[@]}"; do
+            test -s "${target}/config-target.mak"
+            sh "${GITHUB_WORKSPACE}/external/unicorn/qemu/scripts/create_config" \
+              < "${target}/config-target.mak" > "${target}/config-target.h"
+          done
+          test -s x86_64-softmmu/config-target.h
+
       - name: Build Vion
         shell: bash
         run: |
