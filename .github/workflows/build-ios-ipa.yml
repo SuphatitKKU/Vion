@@ -83,9 +83,10 @@ jobs:
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="" \
             -DTEAM= \
             -DUSE_LTO=NEVER \
-            -DBoost_NO_BOOST_CMAKE=ON \
             -DBoost_NO_SYSTEM_PATHS=ON \
             -DBoost_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/Boost-1.89.0" \
+            -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake" \
+            -Dboost_headers_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/boost_headers-1.89.0" \
             -DVITA3K_FORCE_CUSTOM_BOOST=ON
 
       - name: Build Vion
