@@ -66,6 +66,7 @@ jobs:
             --build-dir="${BOOST_BUILD}" \
             --stagedir="${BOOST_STAGE}" \
             stage
+          find "${BOOST_STAGE}" -maxdepth 3 -type f -print
 
       - name: Configure CMake iOS project
         shell: bash
@@ -82,6 +83,8 @@ jobs:
             -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="" \
             -DTEAM= \
             -DUSE_LTO=NEVER \
+            -DBoost_NO_BOOST_CMAKE=ON \
+            -DBoost_NO_SYSTEM_PATHS=ON \
             -DVITA3K_FORCE_CUSTOM_BOOST=ON
 
       - name: Build Vion
