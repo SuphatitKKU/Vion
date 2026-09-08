@@ -86,6 +86,7 @@ jobs:
             -DTEAM= \
             -DUSE_LTO=NEVER \
             -DBoost_NO_SYSTEM_PATHS=ON \
+            -DBoost_USE_STATIC_RUNTIME=ON \
             -DBoost_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/Boost-1.89.0" \
             -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake" \
             -Dboost_headers_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/boost_headers-1.89.0" \
