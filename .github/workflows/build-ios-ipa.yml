@@ -50,7 +50,7 @@ jobs:
           BOOST_BUILD="$RUNNER_TEMP/boost-build"
 
           cd external/boost
-          chmod +x bootstrap.sh
+          chmod +x bootstrap.sh tools/build/src/engine/build.sh
           ./bootstrap.sh --with-libraries=filesystem
           ./b2 -j"$(sysctl -n hw.ncpu)" \
             --with-filesystem \
