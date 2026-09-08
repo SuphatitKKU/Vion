@@ -89,11 +89,14 @@ jobs:
             -DBoost_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/Boost-1.89.0" \
             -DCMAKE_PREFIX_PATH="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake" \
             -Dboost_headers_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/boost_headers-1.89.0" \
+            -Dboost_filesystem_DIR="${GITHUB_WORKSPACE}/build/ios/external/boost/lib/cmake/boost_filesystem-1.89.0" \
             -DUSE_LIBIDN2=OFF \
             -DCURL_USE_LIBPSL=OFF \
             -DCURL_USE_LIBSSH2=OFF \
             -DHAVE_LIBSOCKET=OFF \
             -DVITA3K_FORCE_CUSTOM_BOOST=ON
+
+          grep -q 'libboost_filesystem' build/ios/Vita3K.xcodeproj/project.pbxproj
 
       - name: Regenerate Unicorn target headers
         shell: bash
