@@ -92,6 +92,7 @@ jobs:
             -DUSE_LIBIDN2=OFF \
             -DCURL_USE_LIBPSL=OFF \
             -DCURL_USE_LIBSSH2=OFF \
+            -DHAVE_LIBSOCKET=OFF \
             -DVITA3K_FORCE_CUSTOM_BOOST=ON
 
       - name: Regenerate Unicorn target headers
